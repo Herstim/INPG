@@ -1,0 +1,56 @@
+Absolute Disk Read
+;
+;	Synopsis:	int getsec(drive,numsec,begsec,buffer)
+;			unsigned int drive;	/* 0=A, 1=B, etc. */
+;			unsigned int numsec;	/* Number of sectors to read */
+;			unsigned int begsec;	/* Beginning logical sector */
+;			char *buffer;		/* Transfer address */
+;
+;	Function:	The number of sectors specified are transferred 
+;			between	the given drive and the transfer address. 
+;			LOGICAL SECTOR NUMBERS are obtained by numbering
+;			each sector sequentially starting from track 0, head 0,
+;			sector 1 (logical sector 0) and continuing along the
+;			same head, then to the next head until the last sector
+;			on the last head of the track is counted.  Thus, 
+;			logical sector 1 is track 0, head 0, sector 2,
+;			logical sector 2 is track 0, head 0, sector 3,  & so on.
+;
+;	Returns:	NULL if the operation is successful.
+;			otherwise, error codes are as follows:
+;
+;			hex 80	Attachment failed to respond.
+;			hex 40	SEEK operation failed.
+;			hex 20	Controller failure.
+;			hex 10  Bad CRC on diskette read.
+;			hex 08	DMA overrun on operation.
+;			hex 04	Requested sector not found.
+;			hex 03	Write attempt on write-protected diskette.
+;			hex 02	Address mark not found.
+;			hex FF	Unspecified (error other than those above).
+;
+code	segment	byte public		;segment registers remain intact
+	assume	cs:code			;all other registers will be destroyed
+	public	getsec
+
+getsec: push	bp			;save old frame pointer
+	mov	bp,sp			;get new frame pointer
+	mov	ax,4[bp]		;put drive number into AL
+	xor	ah,ah
+	mov	cx,6[bp]		;number of sectors to fetch
+	mov	dx,8[bp]		;logical record number of 1st sector
+	mov     bx,10[bp]		;pointer to transfer address
+	int	25h			;BIOS call
+	jc	error			;error has occurred if carry flag = 1
+	mov	al,00H			;NULL to indicate sucessful completion
+	jmp	done
+error:	cmp	al,00H			;detect unspecified error code 00H
+	jne	done			;...change to 0FFh if found to 
+	mov	al,0FFH			;...differentiate it from success code
+done:	xor	ah,ah			;return AL only
+	popf				;remove flags int 0x25 left on stack
+	pop	bp			;restore original frame pointer
+	ret				;all done
+
+code	ends
+	end
