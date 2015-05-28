@@ -1,4 +1,4 @@
-Get disk free space function
+Get function
 
 ;	CALL FRESPACE(AH,AL,BH,BL,CH,CL). CL SHOULD BE 0 for default
 ;	  drive 1 for A, 2 for B, 3 for C, etc. The value of the
