@@ -1,4 +1,4 @@
-Show Memory
+Show Memory Memory Show
 
 kbd             equ     16h             ;keyboard irq
 msdos           equ     21h             ;MSDOS irq
