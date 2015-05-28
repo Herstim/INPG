@@ -1,4 +1,6 @@
 Absolute Disk Read
+
+edit new spaces
 ;
 ;	Synopsis:	int getsec(drive,numsec,begsec,buffer)
 ;			unsigned int drive;	/* 0=A, 1=B, etc. */
