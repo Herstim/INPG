@@ -1,5 +1,7 @@
 Drives Exist
 
+What goes around, comes around.
+
 ; Goes through drives A-Z and determines if they:
 ; 1) Exist
 ; 2) Are removable or fixed
