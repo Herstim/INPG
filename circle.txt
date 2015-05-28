@@ -1,5 +1,5 @@
 Circle
-
+druga linijka jest modyfikowana
 cseg segment
         assume cs:cseg, ds:cseg, ss:cseg
         org 100h
