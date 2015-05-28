@@ -1,0 +1,132 @@
+Drives Exist
+
+; Goes through drives A-Z and determines if they:
+; 1) Exist
+; 2) Are removable or fixed
+; 3) Are local, remote, or shared
+; 4) Are a floppy, hard, RAM, subst, or CD-ROM drive
+;
+; Callable from C as: void Drives_Exist(void);
+
+.model small
+.286
+
+DRIVEEXIST      EQU     1
+
+REMOVEDRV       EQU     0
+FIXEDDRV        EQU     1
+
+LOCALDRV        EQU     0
+REMOTEDRV       EQU     1
+SHAREDRV        EQU     2
+
+FLOPPY          EQU     0
+HARD            EQU     1
+RAM             EQU     2
+SUBST           EQU     3
+CDROM           EQU     4
+
+.data
+PUBLIC  _drives
+        _drives         db      26 dup(0,1,0,1)
+        ; default to not exist, fixed, local, hard drive
+
+.code
+
+                        PUBLIC  _Drives_Exist
+_Drives_Exist           PROC    NEAR
+                pusha
+                push    es
+
+                mov     ah,19h
+                int     21h             ; get start drive
+                push    ax              ; save start drive
+
+                mov     ax,40h
+                mov     es,ax
+                mov     bh,es:[10h]     ; 40:10h is # of floppies-1
+                shr     bh,6
+                inc     bh              ; # of actual floppy drives
+                mov     bl,1
+                mov     di,offset _drives
+nextchkfloppy:  mov     ax,4409h        ; check if drive exists
+                int     21h
+                jc      nextsetfloppy
+                test    dh,10000000b    ; check if SUBST drive
+                jz      chkfloppy
+                dec     bh              ; dec actual drive count
+                mov     byte ptr [di+3],SUBST
+setfloppyexist: mov     byte ptr [di],DRIVEEXIST
+                jmp     nextsetfloppy
+chkfloppy:      dec     bh              ; dec actual drive count
+                js      nextsetfloppy
+                mov     byte ptr [di+1],REMOVEDRV
+                mov     byte ptr [di+3],FLOPPY
+                jmp     setfloppyexist
+nextsetfloppy:  add     di,4
+                inc     bl
+                cmp     bl,2            ; if B then jump back
+                je      nextchkfloppy
+
+                mov     ch,24           ; loop 24 times (drives C - Z)
+                mov     cl,3            ; start at C:
+drivechkloop:   mov     ax,4409h        ; check if drive exists
+                mov     bl,cl           ; set drive letter
+                int     21h             ; 0 = default, 1 = A:, etc.
+                jc      nextsetdrv
+                mov     byte ptr [di],DRIVEEXIST
+                mov     ax,4408h        ; check if removable
+                int     21h
+                mov     byte ptr [di+1],al      ; set REMOVABLE or FIXED
+                mov     bx,dx
+                mov     dl,dh
+                shr     dl,7
+                and     dh,00010000b
+                shr     dh,4
+                mov     byte ptr [di+2],dh      ; set REMOTE or LOCAL
+                or      dl,dl                   ; if not SUBST, then jump
+                jz      chkremote
+                mov     byte ptr [di+3],SUBST
+                jmp     nextsetdrv
+
+chkremote:      cmp     dh,REMOTEDRV    ; if REMOTE, then check for CD ROM
+                je      chkcdrom
+
+                test    bh,00000010b    ; sharable?
+                jz      drivenoshare
+                mov     byte ptr [di+2],SHAREDRV
+drivenoshare:   test    bl,00000010b    ; RAM drive?
+                jnz     nextsetdrv
+                mov     byte ptr [di+3],RAM
+                jmp     nextsetdrv
+
+chkcdrom:       push    cx
+                mov     ax,1500h
+                xor     bx,bx
+                int     2fh
+                pop     cx
+                or      bx,bx           ; MSCDEX driver found?
+                jz      nextsetdrv      ; if not, jump to next drive setup
+                mov     ax,150bh
+                dec     cl              ; 0=A:, etc.
+                int     2fh
+                inc     cl
+                or      ax,ax
+                jz      nextsetdrv      ; drive supported by MSCDEX?
+                mov     byte ptr [di+3],CDROM
+
+nextsetdrv:     add     di,4
+                inc     cl
+                dec     ch
+                jnz     drivechkloop
+
+                pop     dx
+                mov     ah,0eh
+                int     21h             ; reset start drive
+
+                pop     es
+                popa
+                ret
+_Drives_Exist           ENDP
+
+                        END
