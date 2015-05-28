@@ -1,4 +1,4 @@
-.386
+.683
 .model Flat
 public Fibonacci
 include iosmacros.inc ;includes macros for outputting to the screen
